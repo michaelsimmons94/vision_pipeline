@@ -12,3 +12,4 @@ A Vision Pipeline for ROS. This pipeline currently includes scripts to detect sh
 
 ## Tools:
 Currently this package has two additional tools for debugging and parameter tuning. in /tools/ there is `hsvfinder.py` which takes in an image as an argument using the `-i` flag. From there you can annotate the image to get maximum and minimum color values in HSV to determine color bands. The second tool is `/tools/prototype_static_detector.py`. As it's name indicates this is useful for testing static images instead of live video.
+- use `pcl_install.sh` to install Point Cloud Library from source. I have not been able to find any prebuilt binaries for ubuntu 16.04 so buckle up since it will take 30+ minutes to run
