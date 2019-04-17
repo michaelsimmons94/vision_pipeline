@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import argparse
-import imutils
 import math
 from ColorFilter import ColorFilter
 
@@ -75,7 +74,7 @@ def label(image,colorFilter):
                 cv2.putText(image, _label, (cX+20, cY+20), cv2.FONT_HERSHEY_SIMPLEX,
                     0.5, (0, 255, 0), 2)
                 
-                cv2.drawContours(image, [hull], -1, (0,0,0), 1)
+                cv2.drawContours(image, [hull], -1, (255,0,255), 1)
     return labels
     
     
@@ -103,27 +102,37 @@ hsv= cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
 # print hsv[454,196]
 # print(hsv[448,371])
 # print(hsv[448,376])
-# print(hsv[444,376])
-# print hsv[445,358]
+# print(hsv[516,332])
+# print(hsv[441,394])
+# print(hsv[383,177])
+print(hsv[614,164])
+print(hsv[624,415])
 lower_red = np.array([168,165,145]) 
-upper_red = np.array([173,230,230]) 
-
+upper_red = np.array([173,230,230])  
 lower_blue = np.array([93,110,190]) 
-upper_blue = np.array([103,215,255]) 
-
+upper_blue = np.array([103,215,255])
 lower_green = np.array([42,72,160]) 
-upper_green = np.array([64,120,215])
-
-redFilter=ColorFilter(lower_red,upper_red,'r')
-blueFilter=ColorFilter(lower_blue,upper_blue, 'b')
+upper_green = np.array([67,120,225])
+lower_orange= np.array([12,78,227])
+upper_orange= np.array([22,168,255])
+lower_purple=np.array([133,15,76])
+upper_purple=np.array([160,75,150])
+# area_mask=np.zeros_like(image)
+# area_mask[472:,30:895]=[255,255,255]
+# redFilter=ColorFilter(lower_red,upper_red,'r',area_mask)
+# blueFilter=ColorFilter(lower_blue,upper_blue, 'b')
 # output=cv2.bitwise_or(edges,redFilter.getMask(image))
 # output=cv2.erode(output,np.ones((3,3), np.uint8),iterations=1)
 # output=cv2.medianBlur(output,3)
 greenFilter=ColorFilter(lower_green, upper_green, 'g')
+# purpleFilter=ColorFilter(lower_purple,upper_purple, 'p')
+# orangeFilter=ColorFilter(lower_orange,upper_orange, 'org')
 # output=blueFilter.getMask(image)
-
+# label(image,redFilter)
 label(image,greenFilter)
-label(image,blueFilter)
+# label(image,blueFilter)
+# # label(image,orangeFilter)
+# label(image,purpleFilter)
 # labels=label(image,greenFilter)
 # output=greenFilter.getMask(image)
 # print(type(output))
@@ -135,5 +144,6 @@ label(image,blueFilter)
 # output = image[420:472,300:380]
 # output=blueFilter.getMask(image)
 output=image
-cv2.imshow("Image", output)
+cv2.imshow('image', greenFilter.getMask(image))
+# cv2.imshow("Image", output)
 cv2.waitKey(0)

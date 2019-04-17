@@ -12,10 +12,12 @@ class ColorFilter:
         self.label=label
         self.lower=lower
         self.upper=upper
+        # self.area_mask=area_mask
         self.kernel=np.ones((5,5),np.uint8)
 
     def getLabel(self):
         return self.label
+
     def getMask(self,image):
         '''
         returns a color mask of the image
@@ -23,6 +25,4 @@ class ColorFilter:
 
         img=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(img, self.lower, self.upper)
-        mask = cv2.dilate(mask,self.kernel,iterations = 1)
-        mask= cv2.erode(mask,self.kernel,iterations=1)
         return mask
