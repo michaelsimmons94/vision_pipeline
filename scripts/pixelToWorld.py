@@ -10,18 +10,20 @@ class Transformer:
 
     def __init__(self):
         #camera offsets
-        self.c_x_off = -.04
-        self.c_y_off = 0.38
-        self.c_z_off = 0.08
-        self.angle = -0.39
+        self.c_x_off = 0
+        # self.c_y_off = 0.39
+        self.c_y_off= 0.356
+        self.c_z_off = 0.05
+        # self.angle = -0.73
+        self.angle= -.48
         #matrices
         self.trans_mat=np.eye(4)
         
         self.init_transformation_matrix()
-        print(self.trans_mat)
+        # print(self.trans_mat)
         self.rot_mat= np.zeros((4,4))
         self.init_rotation_matrix()
-        print(self.rot_mat)
+        # print(self.rot_mat)
         rospy.init_node('vision')
         rospy.Service('vision/pixelToWorld', GetPoint, self.getCoordinates)
         rospy.spin()
@@ -32,7 +34,7 @@ class Transformer:
             pixelToCamera= rospy.ServiceProxy('vision/pixelToCamera', GetPoint)
             resp= pixelToCamera(req.x,req.y)
             cam_point=resp.point
-            print cam_point.x,cam_point.y,cam_point.z
+            print 'camera points:',cam_point.x,cam_point.y,cam_point.z
             return self.transform(cam_point)
             
         except rospy.ServiceException, e:
@@ -51,13 +53,13 @@ class Transformer:
         self.rot_mat[3,3]=1
     def transform(self,pt):
         in_vector=np.reshape(np.array([pt.x,pt.z,pt.y,1]),(4,1))
-        # results=np.matmul(self.rot_mat,np.matmul(self.trans_mat,in_vector))
-        results=np.matmul(self.trans_mat,np.matmul(self.rot_mat,in_vector))
-
+        results=np.matmul(self.rot_mat,np.matmul(self.trans_mat,in_vector))
+        # results=np.matmul(self.trans_mat,np.matmul(self.rot_mat,in_vector))
+        print 'world points:',results
         msg=Point()
         msg.x=results[0]
         msg.y=results[1]
-        msg.x=results[2]
+        msg.z=results[2]
         return msg
 if __name__ == "__main__":
     Transformer()
