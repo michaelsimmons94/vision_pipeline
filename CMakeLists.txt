@@ -15,7 +15,7 @@ std_msgs
 geometry_msgs
 message_generation
 sensor_msgs
-PCL
+# PCL
 )
 
 ## System dependencies are found with CMake's conventions
@@ -120,17 +120,17 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-include_directories(
-    ${catkin_INCLUDE_DIRS} ${PCL_LIBRARIES}
-)
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
+# include_directories(
+#     ${catkin_INCLUDE_DIRS} ${PCL_LIBRARIES}
+# )
+# link_directories(${PCL_LIBRARY_DIRS})
+# add_definitions(${PCL_DEFINITIONS})
 
 install(
   DIRECTORY scripts/
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
-add_executable(pixelToCamera src/pixelToCamera.cpp)
-target_link_libraries(pixelToCamera ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+# add_executable(pixelToCamera src/pixelToCamera.cpp)
+# target_link_libraries(pixelToCamera ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(pixelToCamera)

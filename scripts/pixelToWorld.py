@@ -10,20 +10,20 @@ class Transformer:
 
     def __init__(self):
         #camera offsets
-        self.c_x_off = 0
-        # self.c_y_off = 0.39
-        self.c_y_off= 0.356
-        self.c_z_off = 0.05
-        # self.angle = -0.73
-        self.angle= -.48
+        # self.c_x_off = -0.01
+        # self.c_y_off= 0.28
+        # self.c_z_off = 0.01
+        # self.angle= -.5
+        self.c_x_off = 0.02
+        self.c_y_off= 0.49
+        self.c_z_off = 0.09
+        self.angle= .7
         #matrices
         self.trans_mat=np.eye(4)
         
         self.init_transformation_matrix()
-        # print(self.trans_mat)
         self.rot_mat= np.zeros((4,4))
         self.init_rotation_matrix()
-        # print(self.rot_mat)
         rospy.init_node('vision')
         rospy.Service('vision/pixelToWorld', GetPoint, self.getCoordinates)
         rospy.spin()
@@ -34,8 +34,9 @@ class Transformer:
             pixelToCamera= rospy.ServiceProxy('vision/pixelToCamera', GetPoint)
             resp= pixelToCamera(req.x,req.y)
             cam_point=resp.point
-            print 'camera points:',cam_point.x,cam_point.y,cam_point.z
-            return self.transform(cam_point)
+            t_point= self.transform(cam_point)
+            print '{},{},{},{},{},{}'.format(cam_point.x, cam_point.y, cam_point.z, t_point.x[0], t_point.y[0], t_point.z[0])
+            return t_point
             
         except rospy.ServiceException, e:
             print 'Service call failed: %s'%e
@@ -53,9 +54,8 @@ class Transformer:
         self.rot_mat[3,3]=1
     def transform(self,pt):
         in_vector=np.reshape(np.array([pt.x,pt.z,pt.y,1]),(4,1))
-        results=np.matmul(self.rot_mat,np.matmul(self.trans_mat,in_vector))
-        # results=np.matmul(self.trans_mat,np.matmul(self.rot_mat,in_vector))
-        print 'world points:',results
+        # results=np.matmul(self.rot_mat,np.matmul(self.trans_mat,in_vector))
+        results=np.matmul(self.trans_mat,np.matmul(self.rot_mat,in_vector))
         msg=Point()
         msg.x=results[0]
         msg.y=results[1]
