@@ -2,28 +2,49 @@
 import numpy as np
 import rospy
 import cv2
+import json
+from matplotlib.pyplot import imsave
 from cv_bridge import CvBridgeError, CvBridge
 from sensor_msgs.msg import Image
-from sklearn.cluster import KMeans
-import std_srvs.srv
-class GameState:
+from sklearn.cluster import KMeans,MeanShift
+from vision_pipeline.srv import *
+
+
+class GameStateGetter:
+
     def __init__(self):
-        rospy.init_node('GameState')
+        rospy.init_node('GameStateGetter')
         self.bridge = CvBridge()
         self.k=10
-        self.red = np.array([217,65,122])
-        # purple = np.array([126,117,113])
-        self.blue = np.array([69,221,241])
-        self.green = np.array([154,207,156])
+        self.Color={'red':0,'blue':1,'green':2}
+        self.Shape={'square':0,'triangle':1, 'circle':2}
+        self.loadSettings()
         red=self.red
         blue=self.blue
         green=self.green
+        self.y_off=275
+        self.x_off=130
         self.topic='/kinect2/sd/image_color_rect'
-        # rospy.Subscriber(self.topic, Image,self.emptyCallback,queue_size=1)
-        self.color_dict={'red':red,'blue':blue, 'green':green}
-        # 'purple':purple
+        #auto update messages so we get the most recent message
+        rospy.Subscriber(self.topic, Image,self.emptyCallback,queue_size=1)
+        self.color_dict={self.Color['red']:red, self.Color['green']:green, self.Color['blue']:blue}
         self.kernel = np.ones((3,3),np.uint8)
         self.gamestate=np.zeros((3,3))
+        self.block_locs=np.zeros((3,3,2))
+    
+    def toColor(self, arr):
+        return np.array(arr).astype(np.uint8)
+
+    def loadSettings(self):
+        with open('./src/vision_pipeline/cfg/GameStateConfig.json') as json_file:
+            data= json.load(json_file)
+            #Colors are in OpenCVs CIELAB color spectrum to help mitigate issues with shadows
+            #values range from 0-255 for L, A, & B.
+            #values are defined in the json file
+            self.red=self.toColor(data['colors']['red'])
+            self.green=self.toColor(data['colors']['green'])
+            self.blue=self.toColor(data['colors']['blue'])
+
     def getFrame(self):
         frame=rospy.wait_for_message(self.topic,Image, timeout=1)
         try:
@@ -32,34 +53,39 @@ class GameState:
             
             rgb=cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
             return rgb
-            # return output_img
+
         except CvBridgeError as e:
             print(e)
+
     def quantize_img(self,img):
         (h,w) = img.shape[:2]
+        
+
         img=cv2.cvtColor(img,cv2.COLOR_RGB2LAB)
-        img= img.reshape((img.shape[0]*img.shape[1],3))
+        img= img.reshape((h*w,3))
+
+        
         clusters=KMeans(n_clusters=self.k)
         labels=clusters.fit_predict(img)
         quant=clusters.cluster_centers_.astype("uint8")[labels]
+        centroids=clusters.cluster_centers_
         #reshape
         quant = quant.reshape((h,w,3))
-        img = img.reshape((h,w,3))
+        # img = img.reshape((h,w,3))
         #convert
-        quant = cv2.cvtColor(quant, cv2.COLOR_LAB2RGB)
-        img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
-        return quant, clusters.cluster_centers_
+        # quant = cv2.cvtColor(quant, cv2.COLOR_LAB2RGB)
+        # img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
+        return quant, centroids
     def setColors(self,centroids):
+        self.resetColorDict()
         centroids=centroids.astype("uint8")
         colors=np.array([centroids])
-        
-        colors=cv2.cvtColor(colors,cv2.COLOR_LAB2RGB)
+
         color_vector=np.reshape(colors,(self.k,3))
+        lum_invariant_colors=color_vector[:,1:].astype(int)
         for col in self.color_dict:
-            sub=np.tile(self.color_dict[col],(self.k,1))
-            
-            dist=np.linalg.norm((color_vector-sub)[:,1:],axis=1)
-            
+            sub=self.color_dict[col][1:].astype(int)
+            dist=np.linalg.norm(np.subtract(lum_invariant_colors,sub),axis=1)
             idx=np.argmin(dist)
             if dist[idx]<20:
                 self.color_dict[col]=color_vector[idx]
@@ -69,6 +95,12 @@ class GameState:
         color=self.color_dict[color_name]
         mask=cv2.inRange(quantized_img,color,color)
         return mask
+
+    def displayLAB(self,img):
+        bgr=cv2.cvtColor(img,cv2.COLOR_LAB2BGR)
+        cv2.imshow('img',bgr)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     def display(self,img):
         bgr=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
@@ -82,54 +114,89 @@ class GameState:
         cv2.destroyAllWindows()
 
     def crop(self,img):
-        return img[275:380,130:330]
+        return img[self.y_off:self.y_off+105, self.x_off:self.x_off+200]
+        # return img[275:380,130:330]
 
     def emptyCallback(self,msg):
         pass
+
     def resetColorDict(self):
-        self.color_dict['green']=self.green
-        self.color_dict['red']=self.red
-        self.color_dict['blue']=self.blue
-    def getGameState(self):
+        self.color_dict[self.Color['green']]=self.green
+        self.color_dict[self.Color['red']]=self.red
+        self.color_dict[self.Color['blue']]=self.blue
+
+    def readBoard(self):
         
         img=self.getFrame()
+        # normal_image=cv2.imread('./src/vision_pipeline/test_imgs/close_img.png')
+        # self.display(normal_image)
+        # img=cv2.cvtColor(normal_image,cv2.COLOR_BGR2RGB)
+        # self.display(img)
         img=self.crop(img)
+        
         q_img, centroids=self.quantize_img(img)
-        self.resetColorDict()
         colors=self.setColors(centroids)
-        blue_mask=self.getMask(q_img,'blue')
-        green_mask=self.getMask(q_img,'green')
-        red_mask=self.getMask(q_img,'red')
+        
         self.gamestate=np.zeros((3,3))
-        self.getShapes(green_mask,'green',q_img)
-        self.getShapes(red_mask,'red',q_img)
-        out=self.getShapes(blue_mask,'blue',q_img)
+        for color in self.Color.values():
+            self.getShapes(color,q_img)
+    def getBlockLocCB(self,req):
+        try:
+            color=self.Color[req.color.lower()]
+        except:
+            print('color doesn\'t exist')
+        try:
+            shape=self.Shape[req.shape.lower()]
+        except:
+            print('shape doesn\'t exist')
+        y,x=self.getBlockLoc(color,shape)
+        res=BlockLocResponse()
+        res.x=x
+        res.y=y
+        return res
 
-        print(self.gamestate)
-        # self.displayMask(blue_mask)
-        # self.display(out)
+    def getBlockLoc(self, color,shape):
+        
+        self.readBoard()
+        if self.gamestate[shape,color]:
+            y=self.y_off + self.block_locs[shape,color,0]
+            x=self.x_off + self.block_locs[shape,color,1]
+        else:
+            y=-1
+            x=-1
+        return y,x
+
+    def getGameStateCB(self,req):
+        gamestate=self.getGameState()
+        gamestate=gamestate.flatten().tolist()
+        return GameStateResponse(gamestate)
+
+    def getGameState(self):
+        
+        self.readBoard()
+        print(self.gamestate.astype(int))
+        
         return self.gamestate
 
     def which_shape(self,c):
         '''
         Returns the shape of the object with c=Circle t=Triangle and s=Square
         '''
-        # initialize the shape name and approximate the contour
-        shape = "unidentified"
+        # approximate the contour
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.035 * peri, True)
         approx=np.squeeze(approx)
         if len(approx)>5:
-            return 'circle'
-        elif len(approx)<3:
-            return shape
-        #eliminate points that are too close together
+            return self.Shape['circle']
+        #ignore cases that are lines/not polygons
+        if len(approx)<=2:
+            return -1
+        # #eliminate points that are too close together
         dim=approx.shape[0]
         diffs=np.zeros((dim,dim))
         for idx,x in enumerate(approx):
             temp= np.abs(approx-x)
             temp= np.square(temp)
-            
             temp=np.sum(temp,axis=1)
             temp= np.sqrt(temp)
             diffs[idx]=temp
@@ -142,62 +209,45 @@ class GameState:
         approx=np.delete(approx, approx_to_remove, 0)  
         #determine shape
         if len(approx) == 3:
-            shape = "triangle"
+            return self.Shape['triangle']
         elif len(approx) == 4:
-            shape = "square"
+            return self.Shape['square']
         else:
-            shape = "circle"
-
-        return shape
-
-    def fill_game_state(self,shape_name,color_name):
-        row=0
-        col=0
-        if shape_name=='square':
-            row=2
-        elif shape_name=='triangle':
-            row=1
-        if color_name=='red':
-            col=2
-        elif color_name=='blue':
-            col=1
-        self.gamestate[row][col]=1
+            return self.Shape['circle']
 
 
-    def getShapes(self, mask, color_name,img):
+
+
+    def getShapes(self, color,img):
+        
+        mask=self.getMask(img, color)
         _, contours, _ = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
-        labels=[]
         for c in contours:
             hull = cv2.convexHull(c)
 
             shape=self.which_shape(hull)
-            self.fill_game_state(shape,color_name)
-            M = cv2.moments(hull)
-            if M['m00']!=0 and shape!='unidentified':
-                cX = int((M["m10"] / M["m00"]) )
-                cY = int((M["m01"] / M["m00"]) )
-                _label=shape
-                
-                # cv2.putText(img, _label, (cX-10, cY+20), cv2.FONT_HERSHEY_SIMPLEX,
-                #     0.5, (0,0,0), 1)
-                
-                cv2.drawContours(img, [hull], -1, (255,0,255), 1)
-        return img
+            if shape>=0:
+                self.gamestate[shape][color]=1
+                M = cv2.moments(hull)
+                if M['m00']!=0:
+                    cX = int((M["m10"] / M["m00"]) )
+                    cY = int((M["m01"] / M["m00"]) )
+                    self.block_locs[shape,color]=[cY,cX]
+                    # cv2.drawContours(img, [hull], -1, (255,0,255), 1)
+        # return img
 
-    def callback(self,req):
-        self.getGameState()
-        return std_srvs.srv.EmptyResponse
+
+    
 
 def main():
-    # rospy.sleep(3)
-    gs=GameState()
-    # gs.getGameState()
-    rospy.Service('gamestate',std_srvs.srv.Empty, gs.callback)
+    gs=GameStateGetter()
+    rospy.Service('gamestate',GameState, gs.getGameStateCB)
+    rospy.Service('block_loc',BlockLoc,gs.getBlockLocCB)
     try:
         rospy.spin()
     except KeyboardInterrupt:
         print("Shutting down")
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 if __name__ == '__main__':
     main()

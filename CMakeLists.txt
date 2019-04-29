@@ -62,6 +62,8 @@ add_message_files(
 add_service_files(
   FILES
   GetPoint.srv
+  GameState.srv
+  BlockLoc.srv
 )
 
 ## Generate actions in the 'action' folder
