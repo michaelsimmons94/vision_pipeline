@@ -18,7 +18,9 @@ class Perception:
         self.k=10
         self.Color={'red':0,'blue':1,'green':2}
         self.Shape={'square':0,'triangle':1, 'circle':2}
-        self.loadSettings()
+        self.red=[119,191,137]
+        self.blue=[194,90,152]
+        self.green=[200,97,103]
         red=self.red
         blue=self.blue
         green=self.green
@@ -32,18 +34,6 @@ class Perception:
         self.gamestate=np.zeros((3,3))
         self.block_locs=np.zeros((3,3,2))
     
-    def toColor(self, arr):
-        return np.array(arr).astype(np.uint8)
-
-    def loadSettings(self):
-        with open('./src/vision_pipeline/cfg/GameStateConfig.json') as json_file:
-            data= json.load(json_file)
-            #Colors are in OpenCVs CIELAB color spectrum to help mitigate issues with shadows
-            #values range from 0-255 for L, A, & B.
-            #values are defined in the json file
-            self.red=self.toColor(data['colors']['red'])
-            self.green=self.toColor(data['colors']['green'])
-            self.blue=self.toColor(data['colors']['blue'])
 
     def getFrame(self):
         frame=rospy.wait_for_message(self.topic,Image, timeout=1)

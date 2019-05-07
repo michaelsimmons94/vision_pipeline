@@ -1,0 +1,7 @@
+<launch>
+    <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch"/>
+    <node pkg="vision_pipeline" type="cameraToPoint.py" name="cameraToPoint"/>
+    <node pkg="vision_pipeline" type="perception.py" name="perception"/>
+    <node pkg="vision_pipeline" type="blockLocator.py" name="blockLocator"/>
+    <node pkg="vision_pipeline" type="pixelToCamera" name="pixelToCamera"/>
+</launch>
