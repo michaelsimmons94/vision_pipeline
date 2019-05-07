@@ -33,8 +33,8 @@ class image_converter:
       print(e)
     t=self.detector.detectShapes(cv_image,output_img)
     if t:
-      print(t)
-      print(output_img.shape)
+      # print(t)
+      # print(output_img.shape)
       t=t[0]
       msg=Block2D()
       msg.color=t[0]

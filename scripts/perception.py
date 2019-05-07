@@ -10,10 +10,10 @@ from sklearn.cluster import KMeans,MeanShift
 from vision_pipeline.srv import *
 
 
-class GameStateGetter:
+class Perception:
 
     def __init__(self):
-        rospy.init_node('GameStateGetter')
+        rospy.init_node('perception')
         self.bridge = CvBridge()
         self.k=10
         self.Color={'red':0,'blue':1,'green':2}
@@ -59,23 +59,15 @@ class GameStateGetter:
 
     def quantize_img(self,img):
         (h,w) = img.shape[:2]
-        
-
         img=cv2.cvtColor(img,cv2.COLOR_RGB2LAB)
         img= img.reshape((h*w,3))
-
-        
         clusters=KMeans(n_clusters=self.k)
         labels=clusters.fit_predict(img)
         quant=clusters.cluster_centers_.astype("uint8")[labels]
         centroids=clusters.cluster_centers_
-        #reshape
         quant = quant.reshape((h,w,3))
-        # img = img.reshape((h,w,3))
-        #convert
-        # quant = cv2.cvtColor(quant, cv2.COLOR_LAB2RGB)
-        # img = cv2.cvtColor(img, cv2.COLOR_LAB2RGB)
         return quant, centroids
+
     def setColors(self,centroids):
         self.resetColorDict()
         centroids=centroids.astype("uint8")
@@ -115,7 +107,6 @@ class GameStateGetter:
 
     def crop(self,img):
         return img[self.y_off:self.y_off+105, self.x_off:self.x_off+200]
-        # return img[275:380,130:330]
 
     def emptyCallback(self,msg):
         pass
@@ -140,7 +131,7 @@ class GameStateGetter:
         self.gamestate=np.zeros((3,3))
         for color in self.Color.values():
             self.getShapes(color,q_img)
-    def getBlockLocCB(self,req):
+    def blockToPixelCB(self,req):
         try:
             color=self.Color[req.color.lower()]
         except:
@@ -150,7 +141,7 @@ class GameStateGetter:
         except:
             print('shape doesn\'t exist')
         y,x=self.getBlockLoc(color,shape)
-        res=BlockLocResponse()
+        res=BlockToPixelResponse()
         res.x=x
         res.y=y
         return res
@@ -166,7 +157,7 @@ class GameStateGetter:
             x=-1
         return y,x
 
-    def getGameStateCB(self,req):
+    def gameStateCB(self,req):
         gamestate=self.getGameState()
         gamestate=gamestate.flatten().tolist()
         return GameStateResponse(gamestate)
@@ -215,9 +206,6 @@ class GameStateGetter:
         else:
             return self.Shape['circle']
 
-
-
-
     def getShapes(self, color,img):
         
         mask=self.getMask(img, color)
@@ -241,9 +229,9 @@ class GameStateGetter:
     
 
 def main():
-    gs=GameStateGetter()
-    rospy.Service('gamestate',GameState, gs.getGameStateCB)
-    rospy.Service('block_loc',BlockLoc,gs.getBlockLocCB)
+    perception= Perception()
+    rospy.Service('vision/gamestate',GameState, perception.gameStateCB)
+    rospy.Service('vision/blockToPixel',BlockToPixel,perception.blockToPixelCB)
     try:
         rospy.spin()
     except KeyboardInterrupt:

@@ -15,7 +15,11 @@ std_msgs
 geometry_msgs
 message_generation
 sensor_msgs
-# PCL
+PCL
+tf2
+tf2_ros
+tf2_sensor_msgs
+tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,16 +58,16 @@ sensor_msgs
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  Block2D.msg
-  Block3D.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  GetPoint.srv
+  BlockToPixel.srv
+  BlockToPoint.srv
   GameState.srv
-  BlockLoc.srv
+  PixelToPoint.srv
+  PointToPoint.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -78,6 +82,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs
   geometry_msgs
+  # tf2_geometry_msgs
 )
 
 ################################################
@@ -87,10 +92,10 @@ generate_messages(
 ## To declare and build dynamic reconfigure parameters within this
 ## package, follow these steps:
 ## * In the file package.xml:
-##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
-## * In this file (CMakeLists.txt):
-##   * add "dynamic_reconfigure" to
-##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * add a build_depenin_ and a exec_depend tag for "dynamic_reconfigure"
+## * In this file (CMakein_ists.txt):
+##   * add "dynamic_recoin_figure" to
+##     find_package(catkin_n REQUIRED COMPONENTS ...)
 ##   * uncomment the "generate_dynamic_reconfigure_options" section below
 ##     and list every .cfg file to be processed
 
@@ -118,21 +123,22 @@ catkin_package(
  std_msgs
  cv_bridge
  sensor_msgs
+#  geometry_msgs
  message_runtime
 #  DEPENDS system_lib
 )
 
-# include_directories(
-#     ${catkin_INCLUDE_DIRS} ${PCL_LIBRARIES}
-# )
-# link_directories(${PCL_LIBRARY_DIRS})
-# add_definitions(${PCL_DEFINITIONS})
+include_directories(
+    ${catkin_INCLUDE_DIRS} ${PCL_LIBRARIES}
+)
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 install(
   DIRECTORY scripts/
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
-# add_executable(pixelToCamera src/pixelToCamera.cpp)
-# target_link_libraries(pixelToCamera ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+add_executable(pixelToCamera src/pixelToCamera.cpp)
+target_link_libraries(pixelToCamera ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(pixelToCamera)
