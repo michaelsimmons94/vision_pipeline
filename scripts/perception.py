@@ -19,8 +19,8 @@ class Perception:
         self.Color={'red':0,'blue':1,'green':2}
         self.Shape={'square':0,'triangle':1, 'circle':2}
         self.red=[119,191,137]
-        self.blue=[194,90,152]
-        self.green=[200,97,103]
+        self.green=[194,90,152]
+        self.blue=[200,97,103]
         red=self.red
         blue=self.blue
         green=self.green
@@ -66,7 +66,8 @@ class Perception:
         color_vector=np.reshape(colors,(self.k,3))
         lum_invariant_colors=color_vector[:,1:].astype(int)
         for col in self.color_dict:
-            sub=self.color_dict[col][1:].astype(int)
+
+            sub=np.array(self.color_dict[col][1:]).astype(int)
             dist=np.linalg.norm(np.subtract(lum_invariant_colors,sub),axis=1)
             idx=np.argmin(dist)
             if dist[idx]<20:
