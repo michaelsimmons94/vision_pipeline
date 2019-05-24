@@ -66,8 +66,10 @@ add_service_files(
   BlockToPixel.srv
   BlockToPoint.srv
   GameState.srv
+  GetBox.srv
   PixelToPoint.srv
   PointToPoint.srv
+  Snap.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -141,4 +143,7 @@ install(
 )
 add_executable(pixelToCamera src/pixelToCamera.cpp)
 target_link_libraries(pixelToCamera ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+# add_executable(depth_experimental src/depth_experimental.cpp)
+# target_link_libraries(depth_experimental ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 # add_dependencies(pixelToCamera)
